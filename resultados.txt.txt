@@ -1,0 +1,5 @@
+Este archivo se genera ejecutando en tu VM:
+
+    sudo bash scripts/auditoria.sh
+
+Reemplaza este contenido por la salida real. No inventes ni edites resultados.

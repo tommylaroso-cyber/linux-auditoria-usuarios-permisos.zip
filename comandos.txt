@@ -1,0 +1,53 @@
+COMANDOS DEL LABORATORIO
+========================
+Todos son de solo lectura. Los que llevan sudo necesitan permisos para leer /etc/shadow o recorrer todo el sistema.
+
+--- 1. CUENTAS DE USUARIO ---
+cat /etc/passwd
+   -> Lista todas las cuentas. Buscar cuentas que ya no se usan.
+grep -E '/bin/(bash|sh|zsh)$' /etc/passwd
+   -> Solo cuentas que pueden iniciar sesión con shell.
+awk -F: '$3 == 0 {print $1}' /etc/passwd
+   -> Cuentas con UID 0. Debería aparecer solo root.
+sudo awk -F: '($2 == "") {print $1}' /etc/shadow
+   -> Cuentas sin contraseña. No debería aparecer ninguna.
+sudo passwd -S -a
+   -> Estado de la contraseña de cada cuenta (P = activa, L = bloqueada, NP = sin contraseña).
+last -n 10
+lastlog | grep -v "Never"
+   -> Últimos accesos. Sirve para detectar cuentas inactivas o accesos raros.
+
+--- 2. GRUPOS Y PRIVILEGIOS ---
+getent group sudo
+   -> Quiénes pueden usar sudo.
+id usuario_prueba
+   -> Grupos de un usuario específico.
+sudo ls -l /etc/sudoers.d/
+sudo grep -v '^#' /etc/sudoers | grep -v '^$'
+   -> Reglas de sudo activas.
+sudo grep -rn NOPASSWD /etc/sudoers /etc/sudoers.d/
+   -> Reglas que permiten sudo sin contraseña.
+
+--- 3. PERMISOS DE ARCHIVOS ---
+ls -l /etc/passwd /etc/shadow /etc/group /etc/sudoers
+   -> Esperado: passwd 644, shadow 640 o 600, group 644, sudoers 440.
+find / -xdev -type f -perm -0002 2>/dev/null
+   -> Archivos modificables por cualquier usuario.
+find / -xdev -type d -perm -0002 ! -perm -1000 2>/dev/null
+   -> Directorios con escritura para todos y sin sticky bit.
+find / -xdev -type f -perm -4000 2>/dev/null
+   -> Archivos SUID. Revisar que sean binarios conocidos (passwd, sudo, mount...).
+sudo find / -xdev \( -nouser -o -nogroup \) 2>/dev/null
+   -> Archivos sin dueño o sin grupo.
+
+--- 4. SERVICIOS Y PUERTOS ---
+systemctl list-units --type=service --state=running
+systemctl list-unit-files --type=service --state=enabled
+   -> Servicios activos y habilitados al arranque.
+sudo ss -tulpn
+   -> Puertos en escucha. Revisar los que escuchan en 0.0.0.0 en vez de 127.0.0.1.
+
+--- 5. OPCIONAL: LYNIS ---
+sudo apt install lynis -y
+sudo lynis audit system
+   -> Reporte en /var/log/lynis-report.dat. Revisar Warnings y Suggestions.
